@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Firebase config — CONTÉM CHAVES, NÃO COMMITAR
+src/config/firebase.js
+
+# Chaves e credenciais do Firebase
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+.paradigmas-8f1cb-firebase-adminsdk-*.json
+*firebase-adminsdk*
+*CHAVE*
+*chave*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files
+.env
+.env.*
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
