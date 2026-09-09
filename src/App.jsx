@@ -1,14 +1,25 @@
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { useState } from 'react'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
+import TesteTema from './pages/TesteTema'
 import './App.css'
 
-function App() {
+function Home() {
   const [count, setCount] = useState(0)
 
   return (
     <>
+      <nav className="flex gap-4 p-4 justify-center border-b bg-card">
+        <Link to="/" className="text-sm font-medium hover:underline text-primary">
+          Home
+        </Link>
+        <Link to="/teste" className="text-sm font-medium hover:underline text-primary">
+          Teste do Tema
+        </Link>
+      </nav>
+
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -116,6 +127,17 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/teste" element={<TesteTema />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

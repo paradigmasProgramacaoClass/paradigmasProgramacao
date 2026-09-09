@@ -4,7 +4,7 @@ Protótipo de um sistema de planejamento acadêmico. O aluno cadastra suas disci
 marca as concluídas e o sistema calcula quais disciplinas estão disponíveis para cursar
 (pré-requisitos cumpridos) e quantos créditos faltam para a formatura.
 
-Stack: **React + Firebase (Firestore)**
+Stack: **React + Firebase (Firestore) + React Router DOM + shadcn/ui**
 
 ---
 
@@ -16,7 +16,7 @@ Pré-requisitos: Node.js 18+ instalado.
 # 1. Entrar na pasta do projeto
 cd trilha-academica
 
-# 2. Instalar dependências (já vem com firebase incluso)
+# 2. Instalar dependências (já vem com firebase, react-router-dom e shadcn/ui inclusos)
 npm install
 
 # 3. Rodar o projeto em modo dev
@@ -35,11 +35,31 @@ npm run preview
 
 ---
 
+## Dependências principais
+
+- `firebase` — SDK do Firebase (Firestore + Auth)
+- `react-router-dom` — roteamento entre as páginas do app
+- `tailwindcss`, `@tailwindcss/vite`, `lucide-react`, `@radix-ui/react-slot`,
+  `class-variance-authority`, `clsx`, `tailwind-merge` — base do **shadcn/ui**
+
+Para adicionar mais componentes do shadcn/ui no futuro, use:
+
+```bash
+npx shadcn@latest add <nome-do-componente>
+# exemplo:
+npx shadcn@latest add button card input label
+```
+
+Os componentes já presentes estão em `src/components/ui/`.
+
+---
+
 ## Estrutura de Pastas
 
 ```
 trilha-academica/
 ├── public/                     ← arquivos estáticos (imagens, ícones)
+│
 ├── src/
 │   ├── config/
 │   │   └── firebase.js         ← configuração do Firebase (chaves do projeto)
@@ -52,12 +72,19 @@ trilha-academica/
 │   │   ├── DisciplinaService.js
 │   │   └── AlunoService.js
 │   │
-│   ├── components/              ← componentes reutilizáveis (botões, cards, inputs)
+│   ├── components/             ← componentes reutilizáveis
+│   │   ├── ui/                 ← componentes do shadcn/ui
+│   │   │   ├── button.jsx
+│   │   │   ├── button-variants.js
+│   │   │   ├── card.jsx
+│   │   │   ├── input.jsx
+│   │   │   └── label.jsx
 │   │   ├── DisciplinaCard.jsx
 │   │   ├── DisciplinaForm.jsx
 │   │   └── ...
 │   │
 │   ├── pages/                  ← telas/páginas do app (uma por rota)
+│   │   ├── TesteTema.jsx       ← página de teste do tema (/teste)
 │   │   ├── Login.jsx
 │   │   ├── Cadastro.jsx
 │   │   ├── Home.jsx
@@ -69,10 +96,80 @@ trilha-academica/
 │   ├── App.jsx                 ← componente raiz (rotas, layout)
 │   ├── App.css
 │   ├── main.jsx                ← entrypoint do React
-│   └── index.css               ← estilos globais
+│   └── index.css               ← estilos globais e tema
 │
+├── components.json             ← configuração do shadcn/ui
 ├── package.json
 └── vite.config.js
+```
+
+---
+
+## Rotas
+
+As rotas são configuradas em `src/App.jsx` usando `react-router-dom`.
+
+| Rota | Página | O que mostra |
+|------|--------|--------------|
+| `/` | Home (template Vite) | Tela inicial padrão do Vite |
+| `/teste` | TesteTema | Demonstração do tema, tipografia e componentes shadcn |
+
+Exemplo de como adicionar uma nova rota:
+
+```jsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Login from './pages/Login'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
+```
+
+---
+
+## Componentes shadcn/ui disponíveis
+
+Atualmente o projeto já conta com os seguintes componentes do shadcn/ui em `src/components/ui/`:
+
+| Componente | Arquivo | Descrição |
+|------------|---------|-----------|
+| Button | `button.jsx` + `button-variants.js` | Botão com variantes: default, secondary, destructive, outline, ghost, link |
+| Card | `card.jsx` | Container de conteúdo com header, title, description, content e footer |
+| Input | `input.jsx` | Campo de texto estilizado |
+| Label | `label.jsx` | Rótulo para inputs |
+
+Utilitário compartilhado:
+
+- `src/lib/utils.js` — função `cn()` para concatenar classes do Tailwind.
+
+Exemplo de uso:
+
+```jsx
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+function Exemplo() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Título</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button variant="primary">Salvar</Button>
+      </CardContent>
+    </Card>
+  )
+}
 ```
 
 ---
@@ -104,12 +201,17 @@ as operações de banco para uma entidade, recebendo o `uid` do usuário logado:
 ### `src/components/`
 
 Componentes React reutilizáveis que aparecem em mais de uma tela (cards, formulários,
-inputs customizados, etc). Um componente = um arquivo.
+inputs customizados, etc). Um componente = um arquivo. A subpasta `ui/` contém os
+componentes do shadcn/ui.
 
 ### `src/pages/`
 
 Cada tela do protótipo vira um arquivo aqui. A página orquestra: pega dados do service,
-monta os componentes, renderiza a UI.
+monta os componentes, renderiza a UI. Cada página geralmente está associada a uma rota.
+
+### `src/App.jsx`
+
+Configura as rotas do `react-router-dom` e serve como ponto de entrada de navegação.
 
 ### Por que essa separação?
 
@@ -117,6 +219,20 @@ monta os componentes, renderiza a UI.
 - **services** isolam o Firebase → se amanhã trocar pra outro banco, só mexe aqui
 - **pages/components** só lidam com UI → não acessam Firestore diretamente
 - Isso é o conceito de **separação de responsabilidades** (OO + camadas)
+
+---
+
+## Tema visual
+
+O tema está definido em `src/index.css` com:
+
+- Paleta **primary** em tons de verde (100–900)
+- Paleta **regular** em tons de cinza
+- Paleta **tertiary** em tons de marrom
+- Tipografia: **Inter, Roboto, DM Sans**
+- Tamanhos de heading, labels e paragraphs
+- Spacing tokens (2px até 112px)
+- **Border-radius fixo em 20px** em todos os componentes
 
 ---
 
@@ -166,4 +282,4 @@ users/{uid}/disciplinas/{id}         ← subcollection de disciplinas
 | `npm run dev`    | Servidor de desenvolvimento (hot reload)    |
 | `npm run build`  | Build de produção → pasta `dist/`           |
 | `npm run preview`| Servidor pra pré-visualizar o build         |
-| `npm run lint`   | Linter (eslint)                            |
+| `npm run lint`   | Linter (oxlint)                            |
