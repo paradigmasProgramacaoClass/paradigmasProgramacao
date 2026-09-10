@@ -84,16 +84,20 @@ trilha-academica/
 │   │   └── ...
 │   │
 │   ├── pages/                  ← telas/páginas do app (uma por rota)
-│   │   ├── TesteTema.jsx       ← página de teste do tema (/teste)
-│   │   ├── Login.jsx
-│   │   ├── Cadastro.jsx
-│   │   ├── Home.jsx
-│   │   ├── CadastroDisciplinas.jsx
-│   │   ├── DisciplinasConcluidas.jsx
-│   │   ├── RecuperarSenha.jsx
-│   │   └── Resultado.jsx
+│   │   └── TesteTema.jsx       ← página de teste do tema (/teste)
 │   │
-│   ├── App.jsx                 ← componente raiz (rotas, layout)
+│   ├── components/             ← componentes reutilizáveis
+│   │   ├── ui/                 ← componentes do shadcn/ui
+│   │   │   ├── button.jsx
+│   │   │   ├── button-variants.js
+│   │   │   ├── card.jsx
+│   │   │   ├── input.jsx
+│   │   │   └── label.jsx
+│   │   ├── RotaProtegida.jsx   ← envolve rotas que exigem login
+│   │   └── ...
+│   │
+│   ├── App.jsx                 ← componente raiz (RouterProvider)
+│   ├── routes.jsx              ← configuração das rotas (createBrowserRouter)
 │   ├── App.css
 │   ├── main.jsx                ← entrypoint do React
 │   └── index.css               ← estilos globais e tema
@@ -107,32 +111,36 @@ trilha-academica/
 
 ## Rotas
 
-As rotas são configuradas em `src/App.jsx` usando `react-router-dom`.
+As rotas são configuradas em `src/routes.jsx` usando `createBrowserRouter` do **React Router DOM v7**. O `src/App.jsx` apenas entrega esse router via `RouterProvider`.
 
 | Rota | Página | O que mostra |
 |------|--------|--------------|
-| `/` | Home (template Vite) | Tela inicial padrão do Vite |
+| `/` | — | Redireciona para `/teste` |
 | `/teste` | TesteTema | Demonstração do tema, tipografia e componentes shadcn |
+| `*` | — | Qualquer rota desconhecida redireciona para `/teste` |
 
-Exemplo de como adicionar uma nova rota:
+Exemplo de como adicionar uma nova rota (com proteção de login):
 
 ```jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
-import Login from './pages/Login'
+import { createBrowserRouter, Navigate } from "react-router-dom"
+import RotaProtegida from "@/components/RotaProtegida"
+import Home from "@/pages/Home"
+import Login from "@/pages/Login"
+import CadastroDisciplinas from "@/pages/CadastroDisciplinas"
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
-
-export default App
+export const router = createBrowserRouter([
+  { path: "/", element: <Home /> },
+  { path: "/login", element: <Login /> },
+  {
+    path: "/disciplinas",
+    element: (
+      <RotaProtegida>
+        <CadastroDisciplinas />
+      </RotaProtegida>
+    ),
+  },
+  { path: "*", element: <Navigate to="/" replace /> },
+])
 ```
 
 ---
@@ -169,6 +177,24 @@ function Exemplo() {
       </CardContent>
     </Card>
   )
+}
+```
+
+### Proteção de rotas (`RotaProtegida`)
+
+O componente `src/components/RotaProtegida.jsx` verifica se o usuário está logado via Firebase Auth. Enquanto verifica, exibe "Carregando..."; se não houver usuário, redireciona para `/login`; caso contrário, renderiza a rota normalmente.
+
+```jsx
+import RotaProtegida from "@/components/RotaProtegida"
+import CadastroDisciplinas from "@/pages/CadastroDisciplinas"
+
+{
+  path: "/disciplinas",
+  element: (
+    <RotaProtegida>
+      <CadastroDisciplinas />
+    </RotaProtegida>
+  ),
 }
 ```
 
@@ -209,9 +235,24 @@ componentes do shadcn/ui.
 Cada tela do protótipo vira um arquivo aqui. A página orquestra: pega dados do service,
 monta os componentes, renderiza a UI. Cada página geralmente está associada a uma rota.
 
+### `src/routes.jsx`
+
+Centraliza a configuração das rotas do `react-router-dom` usando `createBrowserRouter`. É aqui que cada caminho é associado a uma página, e onde as rotas protegidas envolvem seus componentes com `RotaProtegida`.
+
 ### `src/App.jsx`
 
-Configura as rotas do `react-router-dom` e serve como ponto de entrada de navegação.
+Ponto de entrada da aplicação. Renderiza `RouterProvider` passando o `router` criado em `src/routes.jsx`.
+
+```jsx
+import { RouterProvider } from "react-router-dom"
+import { router } from "./routes"
+
+function App() {
+  return <RouterProvider router={router} />
+}
+
+export default App
+```
 
 ### Por que essa separação?
 
