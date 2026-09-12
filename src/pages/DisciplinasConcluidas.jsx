@@ -24,7 +24,7 @@ export default function DisciplinasConcluidas() {
       <main className="max-w-6xl mx-auto px-6 mt-16">
         {/* Link Retornar */}
         <Link
-          to="/meus-creditos"
+          to="/"
           className="inline-flex items-center text-sm font-semibold text-primary hover:underline mb-6"
         >
           &lt; Retornar

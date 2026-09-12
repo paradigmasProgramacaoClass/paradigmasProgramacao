@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Check, ChevronUp, ChevronDown, Book, BarChart2, Wallet } from "lucide-react"
+import { Check, Book, Wallet } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
 export default function Home() {
@@ -20,7 +20,7 @@ export default function Home() {
             </div>
             <div className="text-right">
               <div className="mb-1">
-                <span className="text-3xl font-semibold tracking-tight text-primary">306</span>
+                <span className="text-3xl font-semibold tracking-tight text-primary">200</span>
                 <span className="text-3xl font-semibold tracking-tight text-regular-400">/1000</span>
               </div>
               <Link to="/meus-creditos" className="text-sm font-bold text-primary hover:underline underline-offset-2">
@@ -30,69 +30,44 @@ export default function Home() {
           </div>
 
           <div className="space-y-8">
-            {/* Disciplina 1 - Expandida e Completa */}
+            {/* Disciplina 1 - Completa */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-foreground">Paradigmas de Programação</span>
                   <Check className="w-5 h-5 text-primary" strokeWidth={3} />
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold"><span className="text-primary">200</span> <span className="text-regular-500 font-medium">/ 200</span></span>
-                  <ChevronUp className="w-5 h-5 text-primary cursor-pointer" />
-                </div>
+                <span className="text-sm font-bold"><span className="text-primary">200</span> <span className="text-regular-500 font-medium">/ 200</span></span>
               </div>
-              <div className="w-full bg-regular-200 rounded-full h-3 mb-4">
+              <div className="w-full bg-regular-200 rounded-full h-3">
                 <div className="bg-primary h-3 rounded-full" style={{ width: "100%" }} />
-              </div>
-              <div className="flex items-center justify-between">
-                <button className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-full transition-colors">
-                  Concluir disciplina
-                </button>
-                <Link to="#" className="text-sm font-bold text-primary hover:underline">
-                  Visualizar disciplina &gt;
-                </Link>
               </div>
             </div>
 
-            {/* Disciplina 2 - Expandida e Incompleta */}
+            {/* Disciplina 2 - Zerada */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-foreground">Redes Neurais</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold"><span className="text-primary">50</span> <span className="text-regular-500 font-medium">/ 250</span></span>
-                  <ChevronUp className="w-5 h-5 text-primary cursor-pointer" />
-                </div>
+                <span className="text-sm font-bold"><span className="text-primary">0</span> <span className="text-regular-500 font-medium">/ 250</span></span>
               </div>
-              <div className="w-full bg-regular-200 rounded-full h-3 mb-4">
-                <div className="bg-primary h-3 rounded-full" style={{ width: "20%" }} />
-              </div>
-              <div className="flex items-center justify-between">
-                <button className="px-6 py-2.5 bg-regular-200 text-white text-sm font-semibold rounded-full cursor-not-allowed">
-                  Concluir disciplina
-                </button>
-                <Link to="#" className="text-sm font-bold text-primary hover:underline">
-                  Visualizar disciplina &gt;
-                </Link>
+              <div className="w-full bg-regular-200 rounded-full h-3">
+                <div className="bg-primary h-3 rounded-full" style={{ width: "0%" }} />
               </div>
             </div>
 
-            {/* Disciplina 3 - Colapsada */}
+            {/* Disciplina 3 - Zerada */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-foreground">Microcontroladores e Microprocessadores</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold"><span className="text-primary">50</span> <span className="text-regular-500 font-medium">/ 250</span></span>
-                  <ChevronDown className="w-5 h-5 text-primary cursor-pointer" />
-                </div>
+                <span className="text-sm font-bold"><span className="text-primary">0</span> <span className="text-regular-500 font-medium">/ 250</span></span>
               </div>
               <div className="w-full bg-regular-200 rounded-full h-3">
-                <div className="bg-primary h-3 rounded-full" style={{ width: "20%" }} />
+                <div className="bg-primary h-3 rounded-full" style={{ width: "0%" }} />
               </div>
             </div>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <button className="text-sm font-bold text-primary hover:underline">
               Ver mais
             </button>
@@ -101,7 +76,7 @@ export default function Home() {
 
         {/* Ações Rápidas */}
         <h2 className="text-xl font-bold text-foreground mb-4">Ações rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           {/* Ação 1 */}
           <div className="bg-white rounded-3xl border border-border p-6 flex flex-col justify-between min-h-[160px] shadow-sm">
@@ -120,22 +95,6 @@ export default function Home() {
           </div>
 
           {/* Ação 2 */}
-          <div className="bg-white rounded-3xl border border-border p-6 flex flex-col justify-between min-h-[160px] shadow-sm">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-bold text-foreground">Minhas atividades</h3>
-                <BarChart2 className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-xs text-regular-500 font-medium leading-relaxed">
-                Acesse e atribua atividades a disciplinas.
-              </p>
-            </div>
-            <Link to="/atividades" className="text-sm font-bold text-primary hover:underline mt-4">
-              Visualizar &gt;
-            </Link>
-          </div>
-
-          {/* Ação 3 */}
           <div className="bg-white rounded-3xl border border-border p-6 flex flex-col justify-between min-h-[160px] shadow-sm">
             <div>
               <div className="flex items-center gap-2 mb-2">
