@@ -20,8 +20,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [criandoPerfil, setCriandoPerfil] = useState(false);
 
-  if (user !== null && user !== undefined) {
+  if (user !== null && user !== undefined && !criandoPerfil) {
     return <Navigate to="/" replace />;
   }
 
@@ -42,6 +43,7 @@ export default function Login() {
   async function handleGoogleLogin() {
     setErro("");
     setLoadingGoogle(true);
+    setCriandoPerfil(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -64,6 +66,7 @@ export default function Login() {
       setErro(traduzirErroAuth(err.code));
     } finally {
       setLoadingGoogle(false);
+      setCriandoPerfil(false);
     }
   }
 
