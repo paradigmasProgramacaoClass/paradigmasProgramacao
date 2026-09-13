@@ -682,4 +682,559 @@ implementou o código seguindo prompts detalhados.
 
 ---
 
+# Fluxo Completo — Trilha Acadêmica
+
+## Mapa das camadas
+
+```
+main.jsx
+  └── AuthProvider (contexto global de auth)
+        └── App.jsx
+              └── RouterProvider (routes.jsx)
+                    ├── /login → Login.jsx
+                    ├── /registro → Registro.jsx
+                    ├── /recuperar-senha → RecuperarSenha.jsx
+                    └── RotaProtegida
+                          ├── / → Home.jsx
+                          ├── /disciplinas → Disciplinas.jsx
+                          ├── /disciplinas-concluidas → DisciplinasConcluidas.jsx
+                          └── /meus-creditos → MeusCreditos.jsx
+```
+
+Cada página usa hooks que usam services que usam models. Ninguém pula camada.
+
+---
+
+## 1. Boot do app — `main.jsx`
+
+```jsx
+<AuthProvider>        ← envolve tudo
+  <App />             ← RouterProvider com as rotas
+</AuthProvider>
+```
+
+O `AuthProvider` monta e registra um listener do Firebase:
+
+```jsx
+// AuthContext.jsx
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    setUser(user);  // Firebase User | null
+  });
+  return () => unsubscribe();
+}, []);
+```
+
+**O que acontece:** assim que o app carrega, o Firebase verifica se tem sessão ativa (token no localStorage). Se tem, `user` recebe o objeto do usuário. Se não, `user` fica `null`. Enquanto verifica, `user` é `undefined`.
+
+Esse `user` fica disponível pra qualquer componente via `useAuth()`:
+
+```jsx
+const { user, uid, logout } = useAuth();
+// user: Firebase User | null | undefined
+// uid: user?.uid (string ou undefined)
+// logout: () => signOut(auth)
+```
+
+---
+
+## 2. Visitante tenta acessar `/` (rota protegida)
+
+```
+routes.jsx:  path: "/" → element: <RotaProtegida><Home /></RotaProtegida>
+```
+
+O `RotaProtegida` é o porteiro:
+
+```jsx
+// RotaProtegida.jsx
+const { user } = useAuth();
+
+if (user === undefined) return <div>Carregando...</div>;     // ainda verificando
+if (user === null) return <Navigate to="/login" />;           // não logado → manda pra login
+return children;                                               // logado → renderiza a página
+```
+
+**Fluxo:**
+1. Usuário digita `localhost:5173/`
+2. React Router renderiza `<RotaProtegida>`
+3. `useAuth()` pega `user` do contexto
+4. `user === null` (não tem sessão) → `<Navigate to="/login" />`
+5. Browser redireciona pra `/login`
+
+---
+
+## 3. Registro de novo usuário — `/registro`
+
+```
+Registro.jsx
+  ├── useState: nome, email, senha, confirmarSenha
+  ├── validações locais (senha >= 6, senha === confirmarSenha)
+  ├── createUserWithEmailAndPassword(auth, email, senha)     ← cria no Firebase Auth
+  ├── new AlunoService(user.uid)                            ← instancia service com o uid
+  ├── alunoService.salvar(new Aluno({...}))                 ← salva perfil no Firestore
+  └── navigate("/login")                                     ← manda pra login
+```
+
+**Passo a passo:**
+
+```jsx
+// 1. Cria usuário no Firebase Auth (retorna user com uid)
+const { user } = await createUserWithEmailAndPassword(auth, email, senha);
+
+// 2. Instancia o service com o uid do usuário recém-criado
+const alunoService = new AlunoService(user.uid);
+
+// 3. Cria um objeto Aluno (model) e salva no Firestore
+await alunoService.salvar(
+  new Aluno({
+    nome,           ← veio do input
+    email,          ← veio do input
+    curso: "",      ← vazio (aluno preenche depois)
+    periodo: 1,
+    creditosNecessarios: 1000,
+  })
+);
+```
+
+**O que o service faz por baixo:**
+
+```js
+// AlunoService.js
+#ref() {
+  return doc(db, "users", this.#uid);  // referência: users/{uid}
+}
+
+async salvar(aluno) {
+  await setDoc(this.#ref(), aluno.toJSON());
+  // setDoc = cria se não existir, sobrescreve se existir
+}
+```
+
+**O que o model faz:**
+
+```js
+// Aluno.js
+toJSON() {
+  return {
+    nome: this.#nome,
+    email: this.#email,
+    curso: this.#curso,
+    periodo: this.#periodo,
+    creditosNecessarios: this.#creditosNecessarios
+  };
+}
+```
+
+**Resultado no Firestore:**
+```
+users/{uid}
+  ├── nome: "Marcelo"
+  ├── email: "marcelo@teste.com"
+  ├── curso: ""
+  ├── periodo: 1
+  └── creditosNecessarios: 1000
+```
+
+---
+
+## 4. Login — `/login`
+
+```
+Login.jsx
+  ├── useState: email, senha, erro, loading, mostrarSenha
+  ├── signInWithEmailAndPassword(auth, email, senha)   ← autentica no Firebase
+  └── navigate("/")                                     ← vai pra Home
+```
+
+```jsx
+async function handleLogin(e) {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    await signInWithEmailAndPassword(auth, email, senha);
+    // onSuccess: onAuthStateChanged dispara → user fica setado no AuthContext
+    navigate("/");
+  } catch (err) {
+    setErro(traduzirErroAuth(err.code));  // traduz código do Firebase pra pt-BR
+  } finally {
+    setLoading(false);
+  }
+}
+```
+
+**Login com Google (mesma página):**
+
+```jsx
+async function handleGoogleLogin() {
+  setCriandoPerfil(true);  // segura o redirect automático
+  const result = await signInWithPopup(auth, provider);
+
+  // Verifica se já tem perfil no Firestore (primeiro login do Google)
+  const alunoService = new AlunoService(result.user.uid);
+  const perfilExistente = await alunoService.buscar();
+  if (!perfilExistente) {
+    // Não tem? Cria com os dados do Google
+    await alunoService.salvar(
+      new Aluno({
+        nome: result.user.displayName || "Usuário Google",
+        email: result.user.email || "",
+        curso: "", periodo: 1, creditosNecessarios: 1000,
+      })
+    );
+  }
+  setCriandoPerfil(false);  // libera o redirect
+  navigate("/");
+}
+```
+
+**Por que `criandoPerfil`?** O `onAuthStateChanged` dispara **imediatamente** quando o popup fecha, setando `user` no contexto. Sem o flag, o `if (user !== null) return <Navigate to="/" />` no topo do Login redirecionaria pra Home antes do `salvar()` terminar → "Perfil não encontrado".
+
+---
+
+## 5. Home carrega — dados reais do Firestore
+
+```
+Home.jsx
+  ├── useAuth() → pega user (pra passar nome pro Navbar)
+  ├── useAluno() → busca perfil + créditos
+  ├── useDisciplinas() → busca lista de disciplinas
+  ├── loading? → "Carregando..."
+  ├── !aluno? → "Perfil não encontrado."
+  └── renderiza: nome, curso, créditos, lista de disciplinas em curso
+```
+
+**O que `useAluno()` faz por baixo:**
+
+```js
+// useAluno.js
+const { uid } = useAuth();                    // pega uid do contexto
+const service = new AlunoService(uid, new DisciplinaService(uid));
+
+useEffect(() => {
+  carregar();  // roda na mount
+}, []);
+
+async function carregar() {
+  const perfil = await service.buscar();      // getDoc no Firestore → users/{uid}
+  setAluno(perfil);                           // Aluno | null
+
+  if (perfil) {
+    const concluidos = await service.creditosConcluidos();   // soma créditos das concluídas
+    const restantes = await service.creditosRestantes();     // necessários - concluídos
+    setCreditosConcluidos(concluidos);
+    setCreditosRestantes(restantes);
+  }
+}
+```
+
+**O que `useDisciplinas()` faz por baixo:**
+
+```js
+// useDisciplinas.js
+const { uid } = useAuth();
+const service = new DisciplinaService(uid);
+
+useEffect(() => {
+  carregar();  // roda na mount
+}, []);
+
+async function carregar() {
+  const lista = await service.listar();       // getDocs no Firestore → users/{uid}/disciplinas
+  setDisciplinas(lista);                      // Disciplina[]
+}
+
+// Filtros derivados (computados, não são estado)
+const emCurso = disciplinas.filter((d) => !d.isConcluida());
+const concluidas = disciplinas.filter((d) => d.isConcluida());
+```
+
+**O que o service faz:**
+
+```js
+// DisciplinaService.js
+#ref() {
+  return collection(db, "users", this.#uid, "disciplinas");  // subcollection
+}
+
+async listar() {
+  const snapshot = await getDocs(this.#ref());
+  return snapshot.docs.map((doc) => {
+    return Disciplina.fromJSON(doc.data(), doc.id);  // converte pra objeto
+  });
+}
+```
+
+**O que o model faz no `fromJSON`:**
+
+```js
+// Disciplina.js
+static fromJSON(data, id = null) {
+  const d = new Disciplina(
+    data.nome,
+    data.creditos,
+    data.prerequisitos || [],
+    data.professor || "",
+    id,              // id do documento no Firestore
+    data.dataCriacao
+  );
+  if (data.concluida) {
+    d.marcarConcluida();  // só pode marcar via método (encapsulamento)
+  }
+  return d;
+}
+```
+
+**Home renderiza com dados reais:**
+
+```jsx
+<Navbar logado nomeUsuario={aluno.getNome()} />       // "Marcelo"
+
+<h1>Disciplinas em curso</h1>
+<p>{aluno.getCurso()} - {aluno.getPeriodo()}º período</p>   // "Ciência da Computação - 6º"
+
+<span>{creditosConcluidos}</span>                     // 200
+<span>/{aluno.getCreditosNecessarios()}</span>        // /1000
+
+{emCurso.map((d) => (
+  <div key={d.getId()}>
+    <span>{d.getNome()}</span>                        // "Redes Neurais"
+    <span>0 / {d.getCreditos()}</span>                // 0 / 250
+  </div>
+))}
+```
+
+---
+
+## 6. CRUD de disciplinas — `/disciplinas`
+
+```
+Disciplinas.jsx
+  ├── useDisciplinas() → { disciplinas, adicionar, atualizar, remover, toggleConcluida }
+  ├── useState: formAdd, formEdit, idExcluir, modais abertos
+  ├── tabela: disciplinas.map((d) => ...)
+  ├── Modal Adicionar → formAdd → adicionar(dados)
+  ├── Modal Editar → formEdit (pré-preenchido) → atualizar(id, dados)
+  ├── Modal Excluir → idExcluir → remover(id)
+  └── Checkbox → toggleConcluida(d)
+```
+
+### Adicionar disciplina (fluxo completo)
+
+```
+1. Usuário clica "Adicionar disciplina" → setIsAdicionarOpen(true) → modal abre
+
+2. Usuário preenche o form:
+   formAdd = { nome: "Cálculo II", professor: "Prof. João", creditos: "200" }
+
+3. Usuário clica "Salvar" → handleAdicionar()
+
+4. handleAdicionar chama: adicionar({ nome, professor, creditos: Number(formAdd.creditos), prerequisitos: [] })
+
+5. Hook useDisciplinas.adicionar():
+   const d = new Disciplina("Cálculo II", 200, [], "Prof. João")
+   await service.adicionar(d)      ← addDoc no Firestore
+   await carregar()                ← recarrega a lista do Firestore
+
+6. DisciplinaService.adicionar():
+   const docRef = await addDoc(collection(db, "users", uid, "disciplinas"), d.toJSON())
+   return docRef.id
+
+7. O que vai pro Firestore:
+   users/{uid}/disciplinas/{id_gerado}
+     ├── nome: "Cálculo II"
+     ├── creditos: 200
+     ├── concluida: false
+     ├── prerequisitos: []
+     ├── professor: "Prof. João"
+     └── dataCriacao: "2026-09-13T15:00:00.000Z"  ← gerada no constructor
+
+8. carregar() refaz getDocs → lista atualizada → página re-renderiza
+```
+
+### Editar disciplina
+
+```
+1. Usuário clica no lápis (Pencil) da linha
+   → abrirEditar(d) → setFormEdit com dados da disciplina + setIsEditarOpen(true)
+
+2. Modal abre pré-preenchido:
+   formEdit = { id: "abc123", nome: "Cálculo II", professor: "Prof. João", creditos: "200" }
+
+3. Usuário altera o que quiser → clica "Salvar"
+   → handleEditar() → atualizar(formEdit.id, { nome, professor, creditos, prerequisitos })
+
+4. Hook: new Disciplina(..., id) → service.atualizar(id, d)
+   → updateDoc(doc(db, "users", uid, "disciplinas", id), d.toJSON())
+
+5. carregar() → lista atualizada
+```
+
+### Excluir disciplina
+
+```
+1. Usuário clica na lixeira (Trash2)
+   → abrirExcluir(d.getId()) → setIdExcluir(id) + setIsExcluirOpen(true)
+
+2. Modal de confirmação → clica "Excluir"
+   → handleExcluir() → remover(idExcluir)
+
+3. Hook: service.remover(id)
+   → deleteDoc(doc(db, "users", uid, "disciplinas", id))
+
+4. carregar() → lista atualizada
+```
+
+### Marcar como concluída
+
+```
+1. Usuário clica no checkbox da linha
+   → toggleConcluida(d)
+
+2. Hook: service.toggleConcluida(disciplina)
+
+3. DisciplinaService.toggleConcluida():
+   if (disciplina.isConcluida()) {
+     disciplina.desmarcarConcluida();   // model: #concluida = false
+   } else {
+     disciplina.marcarConcluida();      // model: #concluida = true
+   }
+   await updateDoc(ref, { concluida: disciplina.isConcluida() })
+
+4. carregar() → lista atualizada → disciplina some de "em curso" e aparece em "concluídas"
+```
+
+---
+
+## 7. Disciplinas Concluídas — `/disciplinas-concluidas`
+
+```
+DisciplinasConcluidas.jsx
+  ├── useDisciplinas() → { concluidas, loading }
+  ├── concluidas = disciplinas.filter((d) => d.isConcluida())  ← filtro derivado do hook
+  ├── loading? → "Carregando..."
+  ├── concluidas.length === 0? → "Nenhuma disciplina concluída ainda."
+  └── tabela: concluidas.map((d) => d.getNome(), d.getProfessor(), d.getCreditos(), d.getDataCriacaoFormatada())
+```
+
+**Nota:** `concluidas` não é uma busca separada no Firestore. O hook já carregou **todas** as disciplinas uma vez e filtra em memória. Se o usuário marcar uma disciplina como concluída em `/disciplinas`, o `carregar()` recarrega a lista, e quando ele for pra `/disciplinas-concluidas` o hook roda de novo (mount) e a disciplina aparece lá.
+
+---
+
+## 8. Meus Créditos — `/meus-creditos`
+
+```
+MeusCreditos.jsx
+  ├── useAluno() → { aluno, creditosConcluidos, loading }
+  ├── useDisciplinas() → { concluidas, loading }
+  ├── loading? → "Carregando..."
+  └── renderiza:
+       ├── {creditosConcluidos} / {aluno.getCreditosNecessarios()}   ← total
+       └── concluidas.map((d) => ...)                                  ← histórico
+```
+
+**Como `creditosConcluidos` é calculado (AlunoService):**
+
+```js
+async creditosConcluidos() {
+  const disciplinas = await this.#disciplinaService.listar();  // pega todas
+  return disciplinas
+    .filter((d) => d.isConcluida())           // só as concluídas
+    .reduce((total, d) => total + d.getCreditos(), 0);  // soma os créditos
+}
+
+async creditosRestantes() {
+  const aluno = await this.buscar();          // pega perfil
+  const concluidos = await this.creditosConcluidos();
+  return Math.max(0, aluno.getCreditosNecessarios() - concluidos);
+}
+```
+
+---
+
+## 9. Logout — Navbar
+
+```
+Navbar.jsx
+  ├── botão hambúrguer → setAberto(true) → sidebar abre
+  ├── botão Sair (LogOut) → handleLogout()
+  └── handleLogout():
+       await logout()         ← signOut(auth) do AuthContext
+       navigate("/login")
+```
+
+**O que acontece após `signOut`:**
+1. Firebase limpa a sessão
+2. `onAuthStateChanged` dispara com `null`
+3. `AuthContext` seta `user = null`
+4. Se estiver numa rota protegida, `RotaProtegida` vê `user === null` → redirect pra `/login`
+
+---
+
+## 10. Diagrama do fluxo completo
+
+```
+                          Firebase Auth
+                              │
+                    onAuthStateChanged
+                              │
+                              ▼
+                    ┌─── AuthContext ───┐
+                    │  user: User|null  │
+                    │  uid: string      │
+                    │  logout(): void   │
+                    └────────┬──────────┘
+                             │
+           ┌─────────────────┼──────────────────┐
+           │                 │                  │
+     RotaProtegida     useAuth()           useAuth()
+     (porteiro)        (páginas de         (hooks)
+           │         auth)                    │
+           │                 │           pega uid
+    user=null?          Login.jsx            │
+    → /login            Registro.jsx         │
+    user=ok?            RecuperarSenha       │
+    → renderiza              │               │
+           │                 │               │
+           ▼                 │         useDisciplinas()
+      Home.jsx               │         useAluno()
+      Disciplinas.jsx        │               │
+      etc.                   │           instanciam
+     useAluno()              │         Service(uid)
+     useDisciplinas()        │               │
+           │                 │         Service faz
+     Hook chama              │         getDoc/getDocs
+     Service.buscar()        │         addDoc/updateDoc
+     Service.listar()        │         deleteDoc
+           │                 │               │
+     Service faz             │         Firestore
+     getDoc/getDocs          │         users/{uid}
+     no Firestore            │         users/{uid}/disciplinas
+           │                 │               │
+     Retorna Model           │               │
+     (Aluno/Disciplina)      │         Service retorna
+           │                 │         Disciplina.fromJSON
+     Hook faz setState       │         Aluno.fromJSON
+           │                 │               │
+     Página re-renderiza ◄───┘─────────── Hook faz setState
+     com dados reais                   Página re-renderiza
+```
+
+---
+
+## Resumo das responsabilidades
+
+| Camada | Sabe de quê | Não sabe de quê |
+|---|---|---|
+| **Model** (Disciplina, Aluno) | Seus próprios dados e regras | Firebase, React, UI |
+| **Service** (DisciplinaService, AlunoService) | Firestore (CRUD), uid do usuário | React, UI, como os dados aparecem |
+| **Hook** (useDisciplinas, useAluno) | React state, loading/error, chamar service | Firestore direto, detalhes do CRUD |
+| **Context** (AuthContext) | Estado de auth global (user, uid, logout) | Firestore, UI, services |
+| **Page** (Home, Disciplinas, etc.) | Renderizar UI, chamar hooks | Firestore, services, Firebase direto |
+| **Component** (Navbar, Modal, RotaProtegida) | UI reutilizável, auth check | Firestore, services |
+
+É isso. Cada camada só fala com a de baixo, ninguém pula.
+
+---
+
 *Fim do relatório.*
