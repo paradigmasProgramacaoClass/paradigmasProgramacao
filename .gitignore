@@ -48,7 +48,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# macOS
+# Agent specs and notes (local only)
+.agents/
 .DS_Store
 .AppleDouble
 .AppleDB

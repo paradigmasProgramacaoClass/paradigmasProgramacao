@@ -4,13 +4,17 @@ class Disciplina {
   #creditos;
   #concluida;
   #prerequisitos;
+  #professor;
+  #dataCriacao;
 
-  constructor(nome, creditos, prerequisitos = [], id = null) {
+  constructor(nome, creditos, prerequisitos = [], professor = "", id = null, dataCriacao = null) {
     this.#id = id;
     this.#nome = nome;
     this.#creditos = creditos;
     this.#concluida = false;
     this.#prerequisitos = prerequisitos;
+    this.#professor = professor;
+    this.#dataCriacao = dataCriacao || new Date().toISOString();
   }
 
   getId() {
@@ -37,6 +41,23 @@ class Disciplina {
     return this.#prerequisitos;
   }
 
+  getProfessor() {
+    return this.#professor;
+  }
+
+  getDataCriacao() {
+    return this.#dataCriacao;
+  }
+
+  getDataCriacaoFormatada() {
+    const data = new Date(this.#dataCriacao);
+    return data.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  }
+
   marcarConcluida() {
     this.#concluida = true;
   }
@@ -50,12 +71,21 @@ class Disciplina {
       nome: this.#nome,
       creditos: this.#creditos,
       concluida: this.#concluida,
-      prerequisitos: this.#prerequisitos
+      prerequisitos: this.#prerequisitos,
+      professor: this.#professor,
+      dataCriacao: this.#dataCriacao
     };
   }
 
   static fromJSON(data, id = null) {
-    const d = new Disciplina(data.nome, data.creditos, data.prerequisitos || [], id);
+    const d = new Disciplina(
+      data.nome,
+      data.creditos,
+      data.prerequisitos || [],
+      data.professor || "",
+      id,
+      data.dataCriacao
+    );
     if (data.concluida) {
       d.marcarConcluida();
     }

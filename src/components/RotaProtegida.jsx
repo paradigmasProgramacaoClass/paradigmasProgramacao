@@ -1,21 +1,11 @@
-import { useEffect, useState } from "react"
 import { Navigate, useLocation } from "react-router-dom"
-import { onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/config/firebase"
+import { useAuth } from "@/context/AuthContext"
 
 export default function RotaProtegida({ children }) {
-  const [usuario, setUsuario] = useState(undefined)
-  const location = useLocation()
+  const { user } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUsuario(user)
-    })
-
-    return () => unsubscribe()
-  }, [])
-
-  if (usuario === undefined) {
+  if (user === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-paragraph text-muted-foreground">Carregando...</p>
@@ -23,7 +13,7 @@ export default function RotaProtegida({ children }) {
     )
   }
 
-  if (usuario === null) {
+  if (user === null) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
