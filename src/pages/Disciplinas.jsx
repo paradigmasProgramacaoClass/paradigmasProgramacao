@@ -1,55 +1,80 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Pencil, Trash2, Plus, Check, Info } from "lucide-react"
+import { Pencil, Trash2, Plus, Check } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import Modal from "@/components/Modal"
 import { Input } from "@/components/ui/input"
-
-const disciplinasIniciais = [
-  { nome: "Redes Neurais", professor: "Professor Cicrano Blau", creditos: "50/200", data: "26/03/2026", selecionada: true },
-  { nome: "Microcontroladores...", professor: "Professor Cicrano Blau", creditos: "50/200", data: "26/03/2026", selecionada: false },
-]
+import { useDisciplinas } from "@/hooks/useDisciplinas"
 
 export default function Disciplinas() {
-  const [disciplinas, setDisciplinas] = useState(disciplinasIniciais)
-  
+  const { disciplinas, adicionar, atualizar, remover, toggleConcluida, loading } = useDisciplinas()
+
   // Controle de Modais
   const [isAdicionarOpen, setIsAdicionarOpen] = useState(false)
   const [isEditarOpen, setIsEditarOpen] = useState(false)
   const [isExcluirOpen, setIsExcluirOpen] = useState(false)
 
-  function toggleSelecionada(index) {
-    // Paradigma Imperativo: Controle de fluxo passo a passo
-    const novasDisciplinas = []; // Passo 1: Criação de um novo array vazio
+  // Form state
+  const [formAdd, setFormAdd] = useState({ nome: "", professor: "", creditos: "" })
+  const [formEdit, setFormEdit] = useState({ id: null, nome: "", professor: "", creditos: "" })
+  const [idExcluir, setIdExcluir] = useState(null)
 
-    // Passo 2: Iteração explícita com loop for clássico
-    for (let i = 0; i < disciplinas.length; i++) {
-      // Passo 3: Criar uma cópia isolada do objeto atual
-      const disciplinaAtual = { ...disciplinas[i] };
-
-      // Passo 4: Checar se o índice atual é o que o usuário clicou
-      if (i === index) {
-        // Passo 5: Instrução explícita de inversão de estado
-        if (disciplinaAtual.selecionada === true) {
-          disciplinaAtual.selecionada = false;
-        } else {
-          disciplinaAtual.selecionada = true;
-        }
-      }
-
-      // Passo 6: Adicionar o objeto à nova lista
-      novasDisciplinas.push(disciplinaAtual);
-    }
-
-    // Passo 7: Atualizar o estado geral
-    setDisciplinas(novasDisciplinas);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-paragraph text-muted-foreground">Carregando...</p>
+      </div>
+    )
   }
 
-  const temSelecionada = disciplinas.some((d) => d.selecionada)
+  function handleFormAddChange(campo, valor) {
+    setFormAdd((prev) => ({ ...prev, [campo]: valor }))
+  }
+
+  async function handleAdicionar() {
+    await adicionar({
+      nome: formAdd.nome,
+      professor: formAdd.professor,
+      creditos: Number(formAdd.creditos),
+      prerequisitos: [],
+    })
+    setFormAdd({ nome: "", professor: "", creditos: "" })
+    setIsAdicionarOpen(false)
+  }
+
+  function abrirEditar(disciplina) {
+    setFormEdit({
+      id: disciplina.getId(),
+      nome: disciplina.getNome(),
+      professor: disciplina.getProfessor(),
+      creditos: String(disciplina.getCreditos()),
+    })
+    setIsEditarOpen(true)
+  }
+
+  async function handleEditar() {
+    await atualizar(formEdit.id, {
+      nome: formEdit.nome,
+      professor: formEdit.professor,
+      creditos: Number(formEdit.creditos),
+      prerequisitos: [],
+    })
+    setIsEditarOpen(false)
+  }
+
+  function abrirExcluir(id) {
+    setIdExcluir(id)
+    setIsExcluirOpen(true)
+  }
+
+  async function handleExcluir() {
+    await remover(idExcluir)
+    setIsExcluirOpen(false)
+  }
 
   return (
     <div className="min-h-screen bg-regular-200 pb-12 font-sans relative">
-      <Navbar logado nomeUsuario="Fulano de Tal" />
+      <Navbar logado />
 
       {/* Segmented Control (Toggle) Centralizado */}
       <div className="absolute top-[88px] left-1/2 -translate-x-1/2 flex items-center bg-regular-300/40 rounded-full p-1 z-10">
@@ -78,7 +103,7 @@ export default function Disciplinas() {
                 Disciplinas adicionadas neste período.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => setIsAdicionarOpen(true)}
               className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-full transition-colors"
             >
@@ -87,74 +112,68 @@ export default function Disciplinas() {
             </button>
           </div>
 
-          {/* Tabela */}
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-regular-100/50 rounded-xl">
-                <tr>
-                  <th className="py-4 px-6 rounded-l-xl w-12"></th>
-                  <th className="py-4 px-2 font-semibold text-foreground">Nome</th>
-                  <th className="py-4 px-6 font-semibold text-foreground">Professor</th>
-                  <th className="py-4 px-6 font-semibold text-foreground">Créditos atribuídos</th>
-                  <th className="py-4 px-6 font-semibold text-foreground rounded-r-xl">Criado em</th>
-                  <th className="py-4 px-6"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {disciplinas.map((item, index) => (
-                  <tr key={index} className="border-b border-transparent hover:bg-regular-100/30 transition-colors">
-                    <td className="py-5 px-6">
-                      <div 
-                        onClick={() => toggleSelecionada(index)}
-                        className={`w-5 h-5 rounded flex items-center justify-center border-2 cursor-pointer transition-colors ${item.selecionada ? 'bg-primary border-primary' : 'border-regular-400 bg-white hover:border-primary'}`}
-                      >
-                        {item.selecionada && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
-                      </div>
-                    </td>
-                    <td className="py-5 px-2 font-semibold text-foreground">{item.nome}</td>
-                    <td className="py-5 px-6 font-medium text-regular-400">{item.professor}</td>
-                    <td className="py-5 px-6 font-medium text-regular-400">{item.creditos}</td>
-                    <td className="py-5 px-6 font-medium text-regular-400">{item.data}</td>
-                    <td className="py-5 px-6 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button 
-                          onClick={() => setIsEditarOpen(true)}
-                          className="text-primary hover:opacity-70 transition-opacity"
-                        >
-                          <Pencil className="w-5 h-5" />
-                        </button>
-                        <button 
-                          onClick={() => setIsExcluirOpen(true)}
-                          className="text-red-500 hover:opacity-70 transition-opacity"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {disciplinas.length === 0 ? (
+            <p className="text-regular-500">Nenhuma disciplina adicionada ainda.</p>
+          ) : (
+            <>
+              {/* Tabela */}
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-regular-100/50 rounded-xl">
+                    <tr>
+                      <th className="py-4 px-6 rounded-l-xl w-12"></th>
+                      <th className="py-4 px-2 font-semibold text-foreground">Nome</th>
+                      <th className="py-4 px-6 font-semibold text-foreground">Professor</th>
+                      <th className="py-4 px-6 font-semibold text-foreground">Créditos atribuídos</th>
+                      <th className="py-4 px-6 font-semibold text-foreground rounded-r-xl">Criado em</th>
+                      <th className="py-4 px-6"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {disciplinas.map((d) => (
+                      <tr key={d.getId()} className="border-b border-transparent hover:bg-regular-100/30 transition-colors">
+                        <td className="py-5 px-6">
+                          <div
+                            onClick={() => toggleConcluida(d)}
+                            className={`w-5 h-5 rounded flex items-center justify-center border-2 cursor-pointer transition-colors ${d.isConcluida() ? 'bg-primary border-primary' : 'border-regular-400 bg-white hover:border-primary'}`}
+                          >
+                            {d.isConcluida() && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                          </div>
+                        </td>
+                        <td className="py-5 px-2 font-semibold text-foreground">{d.getNome()}</td>
+                        <td className="py-5 px-6 font-medium text-regular-400">{d.getProfessor()}</td>
+                        <td className="py-5 px-6 font-medium text-regular-400">{d.getCreditos()}/200</td>
+                        <td className="py-5 px-6 font-medium text-regular-400">{d.getDataCriacaoFormatada()}</td>
+                        <td className="py-5 px-6 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              onClick={() => abrirEditar(d)}
+                              className="text-primary hover:opacity-70 transition-opacity"
+                            >
+                              <Pencil className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => abrirExcluir(d.getId())}
+                              className="text-red-500 hover:opacity-70 transition-opacity"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          <button 
-            disabled={!temSelecionada}
-            className={`mt-4 flex w-fit items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-              temSelecionada 
-                ? 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20' 
-                : 'text-regular-400 cursor-not-allowed'
-            }`}
-          >
-            <Check className="w-5 h-5" />
-            <span className="text-sm font-semibold">Marcar como concluída</span>
-          </button>
-
-          <div className="mt-8 flex items-center gap-2 bg-regular-100/50 p-4 rounded-xl border border-red-100">
-            <Info className="w-5 h-5 text-red-500 shrink-0" />
-            <p className="text-sm font-semibold text-red-500">
-              Apenas disciplinas com a contagem de créditos finalizada podem ser marcadas como concluídas.
-            </p>
-          </div>
+              <button
+                className="mt-4 flex w-fit items-center gap-2 px-6 py-2 rounded-lg transition-colors text-regular-400 cursor-not-allowed"
+              >
+                <Check className="w-5 h-5" />
+                <span className="text-sm font-semibold">Marcar como concluída</span>
+              </button>
+            </>
+          )}
         </div>
       </main>
 
@@ -164,22 +183,37 @@ export default function Disciplinas() {
         <div className="space-y-4 mb-8">
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Nome</label>
-            <Input className="h-12 rounded-xl" placeholder="Ex: Redes Neurais" />
+            <Input
+              className="h-12 rounded-xl"
+              placeholder="Ex: Redes Neurais"
+              value={formAdd.nome}
+              onChange={(e) => handleFormAddChange("nome", e.target.value)}
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Professor</label>
-            <Input className="h-12 rounded-xl" placeholder="Ex: Cicrano Blau" />
+            <Input
+              className="h-12 rounded-xl"
+              placeholder="Ex: Cicrano Blau"
+              value={formAdd.professor}
+              onChange={(e) => handleFormAddChange("professor", e.target.value)}
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Créditos atribuídos</label>
-            <Input className="h-12 rounded-xl" placeholder="Ex: 200" />
+            <Input
+              className="h-12 rounded-xl"
+              placeholder="Ex: 200"
+              value={formAdd.creditos}
+              onChange={(e) => handleFormAddChange("creditos", e.target.value)}
+            />
           </div>
         </div>
         <div className="flex gap-4">
           <button onClick={() => setIsAdicionarOpen(false)} className="flex-1 bg-regular-200 text-[#004d30] hover:bg-regular-300 font-bold py-3.5 rounded-2xl transition-colors">
             Cancelar
           </button>
-          <button onClick={() => setIsAdicionarOpen(false)} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
+          <button onClick={handleAdicionar} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
             Salvar
           </button>
         </div>
@@ -191,22 +225,34 @@ export default function Disciplinas() {
         <div className="space-y-4 mb-8">
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Nome</label>
-            <Input className="h-12 rounded-xl" defaultValue="Redes Neurais" />
+            <Input
+              className="h-12 rounded-xl"
+              value={formEdit.nome}
+              onChange={(e) => setFormEdit((prev) => ({ ...prev, nome: e.target.value }))}
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Professor</label>
-            <Input className="h-12 rounded-xl" defaultValue="Cicrano Blau" />
+            <Input
+              className="h-12 rounded-xl"
+              value={formEdit.professor}
+              onChange={(e) => setFormEdit((prev) => ({ ...prev, professor: e.target.value }))}
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-regular-600 mb-1 block">Créditos atribuídos</label>
-            <Input className="h-12 rounded-xl" defaultValue="200" />
+            <Input
+              className="h-12 rounded-xl"
+              value={formEdit.creditos}
+              onChange={(e) => setFormEdit((prev) => ({ ...prev, creditos: e.target.value }))}
+            />
           </div>
         </div>
         <div className="flex gap-4">
           <button onClick={() => setIsEditarOpen(false)} className="flex-1 bg-regular-200 text-[#004d30] hover:bg-regular-300 font-bold py-3.5 rounded-2xl transition-colors">
             Cancelar
           </button>
-          <button onClick={() => setIsEditarOpen(false)} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
+          <button onClick={handleEditar} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
             Salvar
           </button>
         </div>
@@ -222,7 +268,7 @@ export default function Disciplinas() {
           <button onClick={() => setIsExcluirOpen(false)} className="flex-1 bg-regular-200 text-[#004d30] hover:bg-regular-300 font-bold py-3.5 rounded-2xl transition-colors">
             Cancelar
           </button>
-          <button onClick={() => setIsExcluirOpen(false)} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
+          <button onClick={handleExcluir} className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-2xl transition-colors">
             Excluir
           </button>
         </div>
