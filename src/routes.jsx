@@ -1,35 +1,48 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
+import { useAuth } from "@/context/AuthContext"
+import RotaProtegida from "@/components/RotaProtegida"
 import Login from "@/pages/Login"
 import Registro from "@/pages/Registro"
+import RecuperarSenha from "@/pages/RecuperarSenha"
 import Home from "@/pages/Home"
 import MeusCreditos from "@/pages/MeusCreditos"
 import Disciplinas from "@/pages/Disciplinas"
 import DisciplinasConcluidas from "@/pages/DisciplinasConcluidas"
 
+function LoginRedirect() {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/" replace />;
+  return <Login />;
+}
+
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
+    element: <RotaProtegida><Home /></RotaProtegida>,
   },
   {
     path: "/login",
-    element: <Login />,
+    element: <LoginRedirect />,
   },
   {
     path: "/registro",
     element: <Registro />,
   },
   {
+    path: "/recuperar-senha",
+    element: <RecuperarSenha />,
+  },
+  {
     path: "/meus-creditos",
-    element: <MeusCreditos />,
+    element: <RotaProtegida><MeusCreditos /></RotaProtegida>,
   },
   {
     path: "/disciplinas",
-    element: <Disciplinas />,
+    element: <RotaProtegida><Disciplinas /></RotaProtegida>,
   },
   {
     path: "/disciplinas-concluidas",
-    element: <DisciplinasConcluidas />,
+    element: <RotaProtegida><DisciplinasConcluidas /></RotaProtegida>,
   },
   {
     path: "*",
