@@ -1,5 +1,4 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import { useAuth } from "@/context/AuthContext"
 import RotaProtegida from "@/components/RotaProtegida"
 import Login from "@/pages/Login"
 import Registro from "@/pages/Registro"
@@ -9,12 +8,6 @@ import MeusCreditos from "@/pages/MeusCreditos"
 import Disciplinas from "@/pages/Disciplinas"
 import DisciplinasConcluidas from "@/pages/DisciplinasConcluidas"
 
-function LoginRedirect() {
-  const { user } = useAuth();
-  if (user) return <Navigate to="/" replace />;
-  return <Login />;
-}
-
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -22,7 +15,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <LoginRedirect />,
+    element: <Login />,
   },
   {
     path: "/registro",
