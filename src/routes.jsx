@@ -1,17 +1,38 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import TesteTema from "@/pages/TesteTema"
+import Login from "@/pages/Login"
+import Registro from "@/pages/Registro"
+import Home from "@/pages/Home"
+import MeusCreditos from "@/pages/MeusCreditos"
+import Disciplinas from "@/pages/Disciplinas"
+import DisciplinasConcluidas from "@/pages/DisciplinasConcluidas"
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/teste" replace />,
+    element: <Home />,
   },
   {
-    path: "/teste",
-    element: <TesteTema />,
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/registro",
+    element: <Registro />,
+  },
+  {
+    path: "/meus-creditos",
+    element: <MeusCreditos />,
+  },
+  {
+    path: "/disciplinas",
+    element: <Disciplinas />,
+  },
+  {
+    path: "/disciplinas-concluidas",
+    element: <DisciplinasConcluidas />,
   },
   {
     path: "*",
-    element: <Navigate to="/teste" replace />,
+    element: <Navigate to="/" replace />,
   },
 ])
