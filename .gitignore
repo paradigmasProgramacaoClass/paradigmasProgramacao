@@ -47,3 +47,16 @@ lerna-debug.log*
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+._*
+.fseventsd
+.Spotlight-V100
+.Trashes
