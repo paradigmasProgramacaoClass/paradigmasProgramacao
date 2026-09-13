@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { auth } from "@/config/firebase"
 import { useAuth } from "@/context/AuthContext"
 import { traduzirErroAuth } from "@/lib/auth-errors"
+import Aluno from "@/models/Aluno"
+import AlunoService from "@/services/AlunoService"
 
 export default function Login() {
   const { user } = useAuth();
@@ -42,7 +44,21 @@ export default function Login() {
     setLoadingGoogle(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      // Se for primeiro login do Google, cria perfil no Firestore
+      const alunoService = new AlunoService(result.user.uid);
+      const perfilExistente = await alunoService.buscar();
+      if (!perfilExistente) {
+        await alunoService.salvar(
+          new Aluno({
+            nome: result.user.displayName || "Usuário Google",
+            email: result.user.email || "",
+            curso: "",
+            periodo: 1,
+            creditosNecessarios: 1000,
+          })
+        );
+      }
       navigate("/");
     } catch (err) {
       setErro(traduzirErroAuth(err.code));
