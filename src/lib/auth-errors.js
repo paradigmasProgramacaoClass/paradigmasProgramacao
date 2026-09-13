@@ -7,6 +7,8 @@ const erros = {
   "auth/network-request-failed": "Erro de conexão. Verifique sua internet",
   "auth/email-already-in-use": "Este e-mail já está cadastrado",
   "auth/weak-password": "A senha deve ter pelo menos 6 caracteres",
+  "auth/popup-closed-by-user": "Janela de login fechada",
+  "auth/popup-blocked": "O popup foi bloqueado pelo navegador. Permita popups para este site",
 };
 
 export function traduzirErroAuth(code) {
