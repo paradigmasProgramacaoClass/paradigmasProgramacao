@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useDisciplinas } from "@/hooks/useDisciplinas"
 
 export default function Disciplinas() {
-  const { disciplinas, adicionar, atualizar, remover, toggleConcluida, loading } = useDisciplinas()
+  const { emCurso, adicionar, atualizar, remover, toggleConcluida, loading } = useDisciplinas()
 
   // Controle de Modais
   const [isAdicionarOpen, setIsAdicionarOpen] = useState(false)
@@ -18,6 +18,7 @@ export default function Disciplinas() {
   const [formAdd, setFormAdd] = useState({ nome: "", professor: "", creditos: "" })
   const [formEdit, setFormEdit] = useState({ id: null, nome: "", professor: "", creditos: "" })
   const [idExcluir, setIdExcluir] = useState(null)
+  const [selecionadas, setSelecionadas] = useState([])
 
   if (loading) {
     return (
@@ -72,6 +73,29 @@ export default function Disciplinas() {
     setIsExcluirOpen(false)
   }
 
+  function toggleSelecionada(disciplina) {
+  const id = disciplina.getId()
+
+  setSelecionadas((prev) =>
+    prev.includes(id)
+      ? prev.filter((item) => item !== id)
+      : [...prev, id]
+  )
+}
+
+async function handleMarcarConcluidas() {
+  for (const id of selecionadas) {
+    const disciplina = emCurso.find((d) => d.getId() === id)
+
+    if (disciplina && !disciplina.isConcluida()) {
+      await toggleConcluida(disciplina)
+    }
+  }
+
+  setSelecionadas([])
+}
+
+
   return (
     <div className="min-h-screen bg-regular-200 pb-12 font-sans relative">
       <Navbar logado />
@@ -112,7 +136,7 @@ export default function Disciplinas() {
             </button>
           </div>
 
-          {disciplinas.length === 0 ? (
+          {emCurso.length === 0 ? (
             <p className="text-regular-500">Nenhuma disciplina adicionada ainda.</p>
           ) : (
             <>
@@ -130,14 +154,20 @@ export default function Disciplinas() {
                     </tr>
                   </thead>
                   <tbody>
-                    {disciplinas.map((d) => (
+                    {emCurso.map((d) => (
                       <tr key={d.getId()} className="border-b border-transparent hover:bg-regular-100/30 transition-colors">
                         <td className="py-5 px-6">
                           <div
-                            onClick={() => toggleConcluida(d)}
-                            className={`w-5 h-5 rounded flex items-center justify-center border-2 cursor-pointer transition-colors ${d.isConcluida() ? 'bg-primary border-primary' : 'border-regular-400 bg-white hover:border-primary'}`}
+                            onClick={() => toggleSelecionada(d)}
+                            className={`w-5 h-5 rounded flex items-center justify-center border-2 cursor-pointer transition-colors ${
+                              selecionadas.includes(d.getId())
+                                ? "bg-primary border-primary"
+                                : "border-regular-400 bg-white hover:border-primary"
+                            }`}
                           >
-                            {d.isConcluida() && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                            {selecionadas.includes(d.getId()) && (
+                              <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                            )}
                           </div>
                         </td>
                         <td className="py-5 px-2 font-semibold text-foreground">{d.getNome()}</td>
@@ -167,10 +197,18 @@ export default function Disciplinas() {
               </div>
 
               <button
-                className="mt-4 flex w-fit items-center gap-2 px-6 py-2 rounded-lg transition-colors text-regular-400 cursor-not-allowed"
+                onClick={handleMarcarConcluidas}
+                disabled={selecionadas.length === 0}
+                className={`mt-4 flex w-fit items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                  selecionadas.length > 0
+                    ? "bg-primary text-white hover:bg-primary/90 cursor-pointer"
+                    : "text-regular-400 cursor-not-allowed"
+                }`}
               >
                 <Check className="w-5 h-5" />
-                <span className="text-sm font-semibold">Marcar como concluída</span>
+                <span className="text-sm font-semibold">
+                  Marcar como concluída
+                </span>
               </button>
             </>
           )}
