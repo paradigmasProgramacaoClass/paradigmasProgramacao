@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
+import { useAluno } from "@/hooks/useAluno"
 import { Menu, UserCircle2, LogOut, Home, Book, CheckCircle, Wallet, X } from "lucide-react"
 
 const links = [
@@ -12,10 +13,17 @@ const links = [
 
 export default function Navbar({ logado = false, nomeUsuario = "" }) {
   const { user, logout } = useAuth()
+  const { aluno, loading: loadingAluno } = useAluno()
   const navigate = useNavigate()
   const location = useLocation()
   const [aberto, setAberto] = useState(false)
-  const nome = nomeUsuario || user?.displayName || "Usuário"
+
+  // Prioridade: prop explícita > perfil do Firestore > displayName do Firebase > fallback
+  const nome =
+    nomeUsuario ||
+    aluno?.getNome() ||
+    user?.displayName ||
+    (loadingAluno ? "" : "Usuário")
 
   async function handleLogout() {
     setAberto(false)

@@ -27,16 +27,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment files
+# Environment files — NUNCA commitar credenciais reais
 .env
 .env.*
+!.env.test.example
 *.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea/
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -48,8 +49,20 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Agent specs and notes (local only)
+# Agent configs e specs (locais, não versionar)
 .agents/
+.claude/
+
+# Playwright E2E — artefatos de execução
+tests/playwright-report/
+tests/test-results/
+test-results/
+playwright-report/
+
+# Vitest — relatório de cobertura
+coverage/
+
+# OS files (macOS/Windows)
 .DS_Store
 .AppleDouble
 .AppleDB
